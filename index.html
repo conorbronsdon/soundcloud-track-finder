@@ -25,8 +25,10 @@
   #results-view { display: none; padding: 20px; }
   .header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
   .header h1 { color: #f50; font-size: 24px; }
-  #back-btn { padding: 6px 14px; background: #333; color: #aaa; border: 1px solid #444; border-radius: 4px; cursor: pointer; font-size: 13px; }
-  #back-btn:hover { background: #444; color: #eee; }
+  #back-btn, #batch-btn { padding: 6px 14px; background: #333; color: #aaa; border: 1px solid #444; border-radius: 4px; cursor: pointer; font-size: 13px; }
+  #back-btn:hover, #batch-btn:hover { background: #444; color: #eee; }
+  #batch-btn { margin-left: auto; background: #f50; color: #fff; border-color: #f50; }
+  #batch-btn:hover { background: #e04500; }
   .track { display: flex; align-items: center; padding: 10px 14px; border-bottom: 1px solid #222; transition: background 0.15s; }
   .track:hover { background: #1a1a1a; }
   .track.done { opacity: 0.35; }
@@ -74,6 +76,7 @@ Sub Focus- Original Don
   <div class="header">
     <button id="back-btn">&larr; Back</button>
     <h1 id="results-title">Playlist</h1>
+    <button id="batch-btn">Open next 10</button>
   </div>
   <div class="progress">Progress: <span id="count">0</span> / <span id="total">0</span> done</div>
   <div id="tracks"></div>
@@ -162,10 +165,15 @@ function renderSavedPlaylists() {
   });
 }
 
+let currentTracks = [];
+let currentSaved = {};
+let currentKey = "";
+
 function showResults(tracks, name) {
   document.getElementById("input-view").style.display = "none";
   document.getElementById("results-view").style.display = "block";
   document.getElementById("results-title").textContent = name || "Playlist";
+  currentTracks = tracks;
 
   const container = document.getElementById("tracks");
   const countEl = document.getElementById("count");
@@ -174,7 +182,9 @@ function showResults(tracks, name) {
   container.innerHTML = "";
 
   const key = storageKey(name);
+  currentKey = key;
   const saved = JSON.parse(localStorage.getItem(key) || "{}");
+  currentSaved = saved;
   let doneCount = 0;
 
   // Save tracks for reload
@@ -216,8 +226,37 @@ function showResults(tracks, name) {
     }
     countEl.textContent = doneCount;
     localStorage.setItem(key, JSON.stringify(saved));
+    updateBatchBtn();
   };
+
+  function updateBatchBtn() {
+    const remaining = currentTracks.length - Object.keys(currentSaved).length;
+    const btn = document.getElementById("batch-btn");
+    if (remaining <= 0) {
+      btn.textContent = "All done!";
+      btn.disabled = true;
+    } else {
+      btn.textContent = "Open next " + Math.min(remaining, 10);
+      btn.disabled = false;
+    }
+  }
+  updateBatchBtn();
 }
+
+// Batch open next 10 undone tracks
+document.getElementById("batch-btn").addEventListener("click", () => {
+  const undone = [];
+  for (let i = 0; i < currentTracks.length; i++) {
+    if (!currentSaved[i]) undone.push(i);
+    if (undone.length >= 10) break;
+  }
+  if (!undone.length) { alert("All tracks are done!"); return; }
+  for (const i of undone) {
+    const [artist, title] = currentTracks[i];
+    const q = encodeURIComponent((artist + " " + title).trim());
+    window.open("https://soundcloud.com/search/sounds?q=" + q, "_blank");
+  }
+});
 
 // Generate button
 document.getElementById("go-btn").addEventListener("click", () => {
