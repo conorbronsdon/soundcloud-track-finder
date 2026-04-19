@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Track Finder</title>
-<meta name="description" content="Paste a tracklist, get a search link for every track on your platform of choice — SoundCloud, Spotify, YouTube, or Apple Music.">
+<meta name="description" content="Paste a tracklist, get a search link for every track on your platform of choice — SoundCloud, Spotify, YouTube, Apple Music, or Beatport.">
 <meta property="og:title" content="Track Finder">
-<meta property="og:description" content="Paste a tracklist, get a search link for every track on your platform of choice — SoundCloud, Spotify, YouTube, or Apple Music.">
+<meta property="og:description" content="Paste a tracklist, get a search link for every track on your platform of choice — SoundCloud, Spotify, YouTube, Apple Music, or Beatport.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://track-finder.vercel.app/">
 <meta name="twitter:card" content="summary">
@@ -110,6 +110,7 @@
       <button type="button" class="chip" data-platform="spotify">Spotify</button>
       <button type="button" class="chip" data-platform="youtube">YouTube</button>
       <button type="button" class="chip" data-platform="apple">Apple Music</button>
+      <button type="button" class="chip" data-platform="beatport">Beatport</button>
     </div>
   </div>
 
@@ -185,6 +186,7 @@ const PLATFORMS = {
   spotify:    { name: "Spotify",    search: q => "https://open.spotify.com/search/" + q },
   youtube:    { name: "YouTube",    search: q => "https://www.youtube.com/results?search_query=" + q },
   apple:      { name: "Apple Music", search: q => "https://music.apple.com/us/search?term=" + q },
+  beatport:   { name: "Beatport",    search: q => "https://www.beatport.com/search?q=" + q },
 };
 
 let currentPlatform = localStorage.getItem("sc-finder-platform") || "soundcloud";

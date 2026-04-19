@@ -2,7 +2,7 @@
 
 # Track Finder
 
-Paste a tracklist, get a search link for every track on your platform of choice — SoundCloud, Spotify, YouTube, or Apple Music. No backend, no account, no dependencies — one HTML file.
+Paste a tracklist, get a search link for every track on your platform of choice — SoundCloud, Spotify, YouTube, Apple Music, or Beatport. No backend, no account, no dependencies — one HTML file.
 
 [![GitHub stars](https://img.shields.io/github/stars/conorbronsdon/track-finder?style=social)](https://github.com/conorbronsdon/track-finder/stargazers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)

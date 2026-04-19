@@ -5,12 +5,14 @@ Running list of feature ideas, deferred work, and things considered and skipped.
 ## On deck
 
 ### More platforms
-Easy additions — same URL-template pattern as the existing four.
+Easy additions — same URL-template pattern as the existing five.
 - **Tidal** — `https://tidal.com/search?q=<query>`
-- **Beatport** — `https://www.beatport.com/search?q=<query>` (relevant for DJs)
 - **Bandcamp** — `https://bandcamp.com/search?q=<query>`
 - **Mixcloud** — `https://www.mixcloud.com/search/?q=<query>`
 - **Deezer** — `https://www.deezer.com/search/<query>`
+
+### Import from a 1001tracklists URL
+In progress. Paste a 1001tracklists set URL → fetch + parse on a Vercel serverless function → pipe into the tracklist textarea. Cloudflare posture is the open question; existing open-source scrapers (elte0/1001-tracklists-api) don't handle CF challenges. Likely path: lightweight Cheerio/node-fetch function with realistic headers, fail gracefully + tell the user to copy-paste if blocked.
 
 ### Import a YouTube playlist as a tracklist
 Paste a YouTube playlist URL, fetch video titles, clean them up, feed into the existing parser.
