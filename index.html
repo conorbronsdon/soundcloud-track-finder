@@ -12,21 +12,30 @@
 <meta name="twitter:card" content="summary">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%B5%3C/text%3E%3C/svg%3E">
 <style>
+  /* Accent color is set dynamically by setPlatform() — defaults match
+     SoundCloud until a platform is chosen. accent-text is the foreground
+     color for buttons on the accent background (white for most, black
+     for bright platforms like Beatport). */
+  :root {
+    --accent: #ff5500;
+    --accent-hover: #e04500;
+    --accent-text: #ffffff;
+  }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #111; color: #eee; min-height: 100vh; }
 
   /* Input view */
   #input-view { max-width: 640px; margin: 0 auto; padding: 60px 20px; }
-  #input-view h1 { color: #f50; margin-bottom: 8px; font-size: 28px; }
+  #input-view h1 { color: var(--accent); margin-bottom: 8px; font-size: 28px; transition: color 0.25s ease; }
   #input-view p { color: #888; margin-bottom: 20px; font-size: 14px; line-height: 1.5; }
-  #input-view textarea { width: 100%; height: 400px; background: #1a1a1a; color: #eee; border: 1px solid #333; border-radius: 8px; padding: 14px; font-family: 'SF Mono', 'Consolas', monospace; font-size: 13px; resize: vertical; }
-  #input-view textarea:focus { outline: none; border-color: #f50; }
+  #input-view textarea { width: 100%; height: 400px; background: #1a1a1a; color: #eee; border: 1px solid #333; border-radius: 8px; padding: 14px; font-family: 'SF Mono', 'Consolas', monospace; font-size: 13px; resize: vertical; transition: border-color 0.15s ease; }
+  #input-view textarea:focus { outline: none; border-color: var(--accent); }
   #input-view textarea::placeholder { color: #555; }
   .input-row { display: flex; gap: 12px; margin-top: 14px; align-items: center; }
-  #playlist-name { flex: 1; padding: 10px 14px; background: #1a1a1a; color: #eee; border: 1px solid #333; border-radius: 6px; font-size: 14px; }
-  #playlist-name:focus { outline: none; border-color: #f50; }
-  #go-btn { padding: 10px 28px; background: #f50; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; }
-  #go-btn:hover { background: #e04500; }
+  #playlist-name { flex: 1; padding: 10px 14px; background: #1a1a1a; color: #eee; border: 1px solid #333; border-radius: 6px; font-size: 14px; transition: border-color 0.15s ease; }
+  #playlist-name:focus { outline: none; border-color: var(--accent); }
+  #go-btn { padding: 10px 28px; background: var(--accent); color: var(--accent-text); border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.25s ease, color 0.25s ease; }
+  #go-btn:hover { background: var(--accent-hover); }
   .format-hint { color: #666; font-size: 12px; margin-top: 10px; line-height: 1.6; }
   .format-hint code { background: #1a1a1a; color: #888; padding: 1px 5px; border-radius: 3px; font-family: 'SF Mono', 'Consolas', monospace; font-size: 11px; }
   .format-hint b { color: #999; }
@@ -45,45 +54,47 @@
   .platform-select { margin-bottom: 16px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .platform-select .label { color: #888; font-size: 13px; }
   .platform-chips { display: flex; gap: 6px; flex-wrap: wrap; }
-  .chip { padding: 6px 12px; background: #1a1a1a; color: #999; border: 1px solid #333; border-radius: 16px; cursor: pointer; font-size: 12px; font-weight: 500; transition: background 0.12s, color 0.12s, border-color 0.12s; }
-  .chip:hover { background: #222; color: #ccc; border-color: #444; }
-  .chip.active { background: #f50; color: #fff; border-color: #f50; }
-  .chip.active:hover { background: #e04500; border-color: #e04500; }
+  .chip { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px 6px 10px; background: #1a1a1a; color: #bbb; border: 1px solid #333; border-radius: 16px; cursor: pointer; font-size: 12px; font-weight: 500; transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease; }
+  .chip svg { width: 14px; height: 14px; fill: var(--chip-color, currentColor); transition: fill 0.18s ease; flex-shrink: 0; }
+  .chip:hover { background: #222; color: #eee; border-color: #555; }
+  .chip.active { background: var(--chip-color); color: var(--chip-text, #fff); border-color: var(--chip-color); box-shadow: 0 0 0 2px rgba(255,255,255,0.04); }
+  .chip.active svg { fill: var(--chip-text, #fff); }
+  .chip.active:hover { filter: brightness(1.08); }
 
   /* URL import row — dedicated input for YouTube playlist URLs etc. */
   .url-import { margin-bottom: 18px; }
   .url-import .label { color: #888; font-size: 13px; margin-bottom: 6px; display: block; }
   .url-import .row { display: flex; gap: 10px; align-items: center; }
-  .url-import input[type="url"] { flex: 1; padding: 10px 14px; background: #1a1a1a; color: #eee; border: 1px solid #333; border-radius: 6px; font-size: 13px; }
-  .url-import input[type="url"]:focus { outline: none; border-color: #f50; }
+  .url-import input[type="url"] { flex: 1; padding: 10px 14px; background: #1a1a1a; color: #eee; border: 1px solid #333; border-radius: 6px; font-size: 13px; transition: border-color 0.15s ease; }
+  .url-import input[type="url"]:focus { outline: none; border-color: var(--accent); }
   .url-import input[type="url"]::placeholder { color: #555; }
-  #import-btn { padding: 10px 18px; background: #1a1a1a; color: #eee; border: 1px solid #f50; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s, color 0.15s; }
-  #import-btn:hover:not(:disabled) { background: #f50; color: #fff; }
+  #import-btn { padding: 10px 18px; background: #1a1a1a; color: #eee; border: 1px solid var(--accent); border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease; }
+  #import-btn:hover:not(:disabled) { background: var(--accent); color: var(--accent-text); }
   #import-btn:disabled { opacity: 0.5; cursor: wait; }
   .divider { text-align: center; color: #444; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; margin: 14px 0 10px; }
 
   /* Results view */
   #results-view { display: none; padding: 20px; }
   .header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
-  .header h1 { color: #f50; font-size: 24px; }
-  #back-btn, #batch-btn { padding: 6px 14px; background: #333; color: #aaa; border: 1px solid #444; border-radius: 4px; cursor: pointer; font-size: 13px; }
+  .header h1 { color: var(--accent); font-size: 24px; transition: color 0.25s ease; }
+  #back-btn, #batch-btn { padding: 6px 14px; background: #333; color: #aaa; border: 1px solid #444; border-radius: 4px; cursor: pointer; font-size: 13px; transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease; }
   #back-btn:hover, #batch-btn:hover { background: #444; color: #eee; }
-  #batch-btn { margin-left: auto; background: #f50; color: #fff; border-color: #f50; }
-  #batch-btn:hover { background: #e04500; }
+  #batch-btn { margin-left: auto; background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  #batch-btn:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: var(--accent-text); }
   .track { display: flex; align-items: center; padding: 10px 14px; border-bottom: 1px solid #222; transition: background 0.15s; }
   .track:hover { background: #1a1a1a; }
   .track.done { opacity: 0.35; }
   .num { width: 32px; color: #666; font-size: 13px; flex-shrink: 0; }
   .info { flex: 1; }
-  .artist { color: #f50; font-weight: 600; }
+  .artist { color: var(--accent); font-weight: 600; transition: color 0.25s ease; }
   .title { color: #ddd; }
   .actions { display: flex; gap: 8px; flex-shrink: 0; }
-  a.btn { display: inline-block; padding: 6px 14px; background: #f50; color: #fff; text-decoration: none; border-radius: 4px; font-size: 13px; font-weight: 500; }
-  a.btn:hover { background: #e04500; }
+  a.btn { display: inline-block; padding: 6px 14px; background: var(--accent); color: var(--accent-text); text-decoration: none; border-radius: 4px; font-size: 13px; font-weight: 500; transition: background 0.25s ease, color 0.25s ease; }
+  a.btn:hover { background: var(--accent-hover); }
   button.done-btn { padding: 6px 12px; background: #333; color: #aaa; border: 1px solid #444; border-radius: 4px; cursor: pointer; font-size: 13px; }
   button.done-btn:hover { background: #444; }
   .progress { position: sticky; top: 0; background: #111; padding: 12px 0; border-bottom: 1px solid #333; z-index: 10; font-size: 14px; }
-  .progress span { color: #f50; font-weight: 700; }
+  .progress span { color: var(--accent); font-weight: 700; transition: color 0.25s ease; }
 
   /* Saved playlists */
   #saved-list { margin-top: 30px; }
@@ -102,12 +113,12 @@
   a.footer-btn:hover { background: #222; color: #eee; border-color: #444; }
   .footer-credit { color: #666; font-size: 13px; }
   .footer-credit a { color: #aaa; text-decoration: none; }
-  .footer-credit a:hover { color: #f50; }
+  .footer-credit a:hover { color: var(--accent); }
   .disclaimer { font-style: italic; color: #555; }
 
   /* GitHub star button — top right */
   .github-corner { position: fixed; top: 16px; right: 16px; z-index: 100; display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; background: #1a1a1a; color: #ddd; border: 1px solid #333; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 500; transition: background 0.15s, border-color 0.15s, color 0.15s; }
-  .github-corner:hover { background: #222; border-color: #f50; color: #f50; }
+  .github-corner:hover { background: #222; border-color: var(--accent); color: var(--accent); }
   .github-corner svg { width: 18px; height: 18px; fill: currentColor; }
   @media (max-width: 520px) {
     .github-corner { padding: 6px 10px; font-size: 12px; }
@@ -129,11 +140,26 @@
   <div class="platform-select">
     <span class="label">Search on:</span>
     <div class="platform-chips">
-      <button type="button" class="chip" data-platform="soundcloud">SoundCloud</button>
-      <button type="button" class="chip" data-platform="spotify">Spotify</button>
-      <button type="button" class="chip" data-platform="youtube">YouTube</button>
-      <button type="button" class="chip" data-platform="apple">Apple Music</button>
-      <button type="button" class="chip" data-platform="beatport">Beatport</button>
+      <button type="button" class="chip" data-platform="soundcloud" style="--chip-color:#ff5500;--chip-text:#fff;">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M1.175 12.225c-.051 0-.094.046-.101.1l-.233 2.154.233 2.105c.007.058.05.098.101.098.05 0 .09-.04.099-.098l.255-2.105-.27-2.154c0-.057-.045-.1-.09-.1m-.899.828c-.05 0-.089.039-.098.097L0 14.479l.177 1.504c.009.059.05.098.098.098.05 0 .09-.04.099-.098l.2-1.504-.2-1.336c-.01-.052-.05-.09-.098-.09m1.83-1.229c-.061 0-.11.044-.12.104l-.21 2.628.217 2.601c.008.061.053.107.113.107.06 0 .108-.046.116-.107l.25-2.601-.25-2.628c-.008-.06-.055-.104-.116-.104m1.028-.193c-.075 0-.138.062-.146.14l-.187 2.65.187 2.563c.008.078.071.138.146.138.074 0 .136-.06.145-.139l.212-2.562-.212-2.65c-.009-.078-.071-.14-.145-.14m1.083.178c-.087 0-.157.073-.166.16l-.163 2.565.163 2.472c.009.088.079.159.166.159.087 0 .157-.073.165-.159l.185-2.472-.185-2.565c-.008-.087-.078-.16-.165-.16m1.025.09c-.088 0-.159.075-.167.17l-.17 2.465.171 2.431c.009.09.08.161.168.161.088 0 .159-.075.167-.161l.194-2.431-.194-2.465c-.008-.088-.079-.17-.168-.17m1.019-.035c-.096 0-.176.082-.184.185l-.158 2.483.158 2.391c.008.103.088.184.185.184.096 0 .175-.082.183-.184l.18-2.391-.18-2.483c-.008-.103-.087-.185-.184-.185m1.138.107c-.1 0-.183.087-.19.195l-.149 2.368.149 2.365c.007.107.09.194.19.194.1 0 .184-.087.191-.194l.169-2.365-.169-2.368c-.008-.108-.091-.195-.19-.195m1.116.114c-.109 0-.199.094-.205.21l-.14 2.256.14 2.307c.007.115.098.21.205.21.11 0 .2-.094.207-.21l.158-2.307-.158-2.256c-.007-.116-.098-.21-.207-.21m1.131.164c-.116 0-.213.104-.219.222l-.131 2.095.131 2.255c.007.12.103.221.219.221.116 0 .213-.103.22-.22l.148-2.256-.148-2.095c-.007-.119-.104-.222-.22-.222m4.32-.81c-.138 0-.253.117-.258.264l-.11 2.902.11 2.138c.005.146.12.263.259.263s.253-.117.258-.263l.124-2.138-.124-2.902c-.005-.147-.119-.264-.259-.264m1.208-.083c-.144 0-.261.119-.265.269l-.1 2.993.1 2.12c.004.148.121.268.264.268.143 0 .26-.12.265-.267l.112-2.12-.112-2.994c-.005-.15-.122-.269-.265-.269m1.204-.009c-.149 0-.268.123-.274.277l-.089 3.002.09 2.095c.005.154.123.277.272.277.15 0 .268-.123.274-.277l.101-2.095-.101-3.002c-.006-.154-.124-.277-.273-.277m1.189.057c-.153 0-.277.127-.282.286l-.078 2.953.078 2.057c.005.159.129.285.282.285.152 0 .276-.126.28-.285l.089-2.057-.089-2.953c-.005-.159-.128-.286-.28-.286m1.166.067c-.156 0-.284.13-.289.292l-.068 2.89.068 2.013c.005.162.133.291.29.291.156 0 .284-.13.289-.291l.077-2.013-.077-2.89c-.005-.162-.132-.292-.289-.292m1.144.023c-.161 0-.292.134-.296.3l-.057 2.872.057 1.966c.005.167.136.299.296.299.161 0 .292-.134.296-.3l.064-1.965-.065-2.87c-.004-.167-.134-.3-.295-.3m1.201.072c-.164 0-.298.136-.302.307l-.044 2.805.044 1.948c.004.17.138.306.302.306s.298-.136.302-.307l.05-1.947-.05-2.805c-.004-.17-.138-.307-.302-.307m1.153.008c-.17 0-.309.144-.31.318l-.034 2.802.033 1.903c.003.176.143.319.316.319.171 0 .31-.144.313-.318l.037-1.903-.037-2.802c-.003-.175-.143-.319-.313-.319m1.129.108c-.174 0-.319.147-.32.325l-.023 2.686.023 1.858c.002.18.146.324.32.324.175 0 .317-.144.32-.324l.026-1.858-.026-2.686c-.003-.178-.145-.325-.32-.325m.974-1.1c-.18 0-.324.148-.326.33l-.013 3.69.013 1.81c.002.182.147.328.326.328.18 0 .323-.146.326-.328l.015-1.81-.015-3.69c-.003-.182-.146-.33-.326-.33m1.26 1.43c-.183 0-.332.147-.335.336l-.003 2.254.003 1.772c.003.188.152.335.335.335s.33-.147.335-.335l.003-1.772-.003-2.254c-.005-.189-.152-.336-.335-.336m5.85-3.048c.178-.006.358.023.532.088a1.41 1.41 0 0 1 .846.888c.085.246.084.505.084.726V18.35c0 .355-.02.628-.257.869-.242.241-.57.335-.852.335-.246 0-6.25-.007-6.25-.007a.34.34 0 0 1-.335-.335V9.37c0-.164.116-.307.286-.39.492-.242 1.018-.388 1.563-.388.998 0 1.923.348 2.651.938a3.976 3.976 0 0 1 1.418 2.383.89.89 0 0 1 .313-.07z"/></svg>
+        SoundCloud
+      </button>
+      <button type="button" class="chip" data-platform="spotify" style="--chip-color:#1db954;--chip-text:#fff;">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+        Spotify
+      </button>
+      <button type="button" class="chip" data-platform="youtube" style="--chip-color:#ff0000;--chip-text:#fff;">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+        YouTube
+      </button>
+      <button type="button" class="chip" data-platform="apple" style="--chip-color:#fa243c;--chip-text:#fff;">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M23.997 6.124c0-.738-.065-1.47-.24-2.19-.317-1.31-1.062-2.31-2.18-3.043a5.022 5.022 0 0 0-1.877-.726 10.496 10.496 0 0 0-1.564-.15c-.04-.003-.083-.01-.124-.013H5.988c-.152.01-.303.017-.455.026-.747.043-1.49.123-2.193.4-1.336.53-2.318 1.468-2.795 2.85-.182.525-.276 1.074-.356 1.626-.015.098-.025.196-.037.294v12.01c.004.03.013.06.015.09.085.781.232 1.54.67 2.229 1.023 1.646 2.67 2.447 4.5 2.653 1.72.195 3.49.146 5.24.146 4.123 0 8.244 0 12.366-.007.572 0 1.145-.058 1.707-.19 1.527-.36 2.77-1.268 3.56-2.72.476-.878.666-1.86.666-2.868 0-3.77-.01-7.54.002-11.31zM13.01 17.144c-.15.763-.672 1.256-1.382 1.513a3.28 3.28 0 0 1-.936.214c-.895.066-1.607-.502-1.812-1.328-.16-.637-.15-1.27.288-1.803.363-.44.878-.69 1.438-.8.576-.11 1.154-.177 1.728-.272.1-.017.192-.045.303-.07v-6.01c-.145.032-.27.058-.395.087-1.73.4-3.46.8-5.19 1.198-.417.097-.76.246-1.012.587-.233.315-.32.67-.32 1.05 0 2.76.002 5.52.002 8.28 0 .138-.013.28-.047.414-.166.67-.615 1.123-1.26 1.37-.29.108-.59.19-.898.22-.89.085-1.602-.478-1.823-1.323-.14-.537-.14-1.078.075-1.61.23-.568.67-.9 1.22-1.06.58-.17 1.16-.31 1.75-.45.24-.055.49-.095.72-.17.42-.14.66-.43.76-.85.07-.29.11-.59.11-.88V8.22c0-.15.015-.3.045-.44.1-.47.435-.81.925-.93l9.66-2.23c.085-.02.17-.04.26-.045.36-.02.67.235.7.595.006.09.004.17.004.26v10.56c0 .38-.022.745-.117 1.115z"/></svg>
+        Apple Music
+      </button>
+      <button type="button" class="chip" data-platform="beatport" style="--chip-color:#a8ff00;--chip-text:#000;">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.15 0v14.373h3.574v-3.13c.787-1.21 2.11-1.982 3.574-1.982 2.414 0 4.38 1.952 4.38 4.381 0 2.431-1.966 4.38-4.38 4.38a4.254 4.254 0 0 1-2.458-.773l-2.593 2.578C10.276 20.795 11.903 21.5 13.7 21.5 18.058 21.5 22 18.228 22 13.64 22 8.94 18.232 5.68 13.668 5.68a7.79 7.79 0 0 0-2.944.568V0H7.15z"/></svg>
+        Beatport
+      </button>
     </div>
   </div>
 
@@ -278,12 +304,14 @@ function storageKey(name) {
   return "sc-finder-" + name;
 }
 
+// Platform registry: search URL, brand accent color, foreground-on-accent,
+// and a darker hover variant. Kept parallel with the per-chip inline styles.
 const PLATFORMS = {
-  soundcloud: { name: "SoundCloud", search: q => "https://soundcloud.com/search/sounds?q=" + q },
-  spotify:    { name: "Spotify",    search: q => "https://open.spotify.com/search/" + q },
-  youtube:    { name: "YouTube",    search: q => "https://www.youtube.com/results?search_query=" + q },
-  apple:      { name: "Apple Music", search: q => "https://music.apple.com/us/search?term=" + q },
-  beatport:   { name: "Beatport",    search: q => "https://www.beatport.com/search?q=" + q },
+  soundcloud: { name: "SoundCloud",  accent: "#ff5500", accentText: "#ffffff", accentHover: "#d64600", search: q => "https://soundcloud.com/search/sounds?q=" + q },
+  spotify:    { name: "Spotify",     accent: "#1db954", accentText: "#ffffff", accentHover: "#169c46", search: q => "https://open.spotify.com/search/" + q },
+  youtube:    { name: "YouTube",     accent: "#ff0000", accentText: "#ffffff", accentHover: "#cc0000", search: q => "https://www.youtube.com/results?search_query=" + q },
+  apple:      { name: "Apple Music", accent: "#fa243c", accentText: "#ffffff", accentHover: "#d01d30", search: q => "https://music.apple.com/us/search?term=" + q },
+  beatport:   { name: "Beatport",    accent: "#a8ff00", accentText: "#000000", accentHover: "#8ede00", search: q => "https://www.beatport.com/search?q=" + q },
 };
 
 let currentPlatform = localStorage.getItem("sc-finder-platform") || "soundcloud";
@@ -293,6 +321,11 @@ function setPlatform(p) {
   if (!PLATFORMS[p]) return;
   currentPlatform = p;
   localStorage.setItem("sc-finder-platform", p);
+  const conf = PLATFORMS[p];
+  const root = document.documentElement.style;
+  root.setProperty("--accent", conf.accent);
+  root.setProperty("--accent-hover", conf.accentHover);
+  root.setProperty("--accent-text", conf.accentText);
   document.querySelectorAll(".chip").forEach(chip => {
     chip.classList.toggle("active", chip.dataset.platform === p);
   });
