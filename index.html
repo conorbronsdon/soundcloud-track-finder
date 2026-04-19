@@ -2,7 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SoundCloud Track Finder</title>
+<meta name="description" content="Paste a tracklist and get SoundCloud search links for every track. Batch-open, mark as done, save playlists to local storage.">
+<meta property="og:title" content="SoundCloud Track Finder">
+<meta property="og:description" content="Paste a tracklist and get SoundCloud search links for every track. Batch-open, mark as done, save playlists to local storage.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://soundcloud-track-finder.vercel.app/">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%B5%3C/text%3E%3C/svg%3E">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #111; color: #eee; min-height: 100vh; }
@@ -80,7 +88,7 @@ Sub Focus- Original Don
 
   <div class="footer">
     <div class="footer-btns">
-      <a class="footer-btn" href="https://github.com/conorbronsdon/soundcloud-track-finder" target="_blank" rel="noopener">View source</a>
+      <a class="footer-btn" href="https://github.com/conorbronsdon/soundcloud-track-finder" target="_blank" rel="noopener">Star on GitHub</a>
       <a class="footer-btn" href="https://github.com/conorbronsdon/soundcloud-track-finder/issues" target="_blank" rel="noopener">Suggest improvements</a>
     </div>
     <p class="disclaimer">All views, opinions, and statements expressed on this project are solely my own and are made in my personal capacity. They do not reflect, and should not be construed as reflecting, the views, positions, or policies of my employer. This project is not affiliated with, authorized by, or endorsed by my employer in any way.</p>
@@ -152,32 +160,50 @@ function removePlaylistIndex(name) {
 
 function renderSavedPlaylists() {
   const container = document.getElementById("saved-list");
+  container.textContent = "";
   const playlists = getSavedPlaylists();
-  if (!playlists.length) { container.innerHTML = ""; return; }
+  if (!playlists.length) return;
 
-  let html = "<h2>Saved Playlists</h2>";
+  const h2 = document.createElement("h2");
+  h2.textContent = "Saved Playlists";
+  container.appendChild(h2);
+
   for (const p of playlists) {
-    html += `<div class="saved-item" data-name="${p.name}">
-      <span class="name">${p.name}</span>
-      <span class="count">${p.count} tracks</span>
-      <button class="delete-saved" data-name="${p.name}" title="Delete">&times;</button>
-    </div>`;
-  }
-  container.innerHTML = html;
+    const item = document.createElement("div");
+    item.className = "saved-item";
+    item.dataset.name = p.name;
 
-  container.querySelectorAll(".saved-item").forEach(el => {
-    el.addEventListener("click", (e) => {
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "name";
+    nameSpan.textContent = p.name;
+
+    const countSpan = document.createElement("span");
+    countSpan.className = "count";
+    countSpan.textContent = p.count + " tracks";
+
+    const delBtn = document.createElement("button");
+    delBtn.className = "delete-saved";
+    delBtn.dataset.name = p.name;
+    delBtn.title = "Delete";
+    delBtn.textContent = "\u00d7";
+
+    item.appendChild(nameSpan);
+    item.appendChild(countSpan);
+    item.appendChild(delBtn);
+    container.appendChild(item);
+
+    item.addEventListener("click", (e) => {
       if (e.target.classList.contains("delete-saved")) {
         e.stopPropagation();
         removePlaylistIndex(e.target.dataset.name);
         renderSavedPlaylists();
         return;
       }
-      const name = el.dataset.name;
+      const name = item.dataset.name;
       const tracks = JSON.parse(localStorage.getItem(storageKey(name) + "-tracks") || "[]");
       if (tracks.length) showResults(tracks, name);
     });
-  });
+  }
 }
 
 let currentTracks = [];
@@ -209,16 +235,47 @@ function showResults(tracks, name) {
   tracks.forEach(([artist, title], i) => {
     const q = encodeURIComponent((artist + " " + title).trim());
     const url = "https://soundcloud.com/search/sounds?q=" + q;
-    const div = document.createElement("div");
-    div.className = "track" + (saved[i] ? " done" : "");
-    div.innerHTML =
-      '<div class="num">' + (i+1) + '</div>' +
-      '<div class="info">' + (artist ? '<span class="artist">' + artist + '</span> — ' : '') + '<span class="title">' + title + '</span></div>' +
-      '<div class="actions">' +
-        '<a class="btn" href="' + url + '" target="_blank">Search</a>' +
-        '<button class="done-btn" data-i="' + i + '">' + (saved[i] ? "Undo" : "Done") + '</button>' +
-      '</div>';
-    container.appendChild(div);
+
+    const row = document.createElement("div");
+    row.className = "track" + (saved[i] ? " done" : "");
+
+    const num = document.createElement("div");
+    num.className = "num";
+    num.textContent = (i + 1);
+
+    const info = document.createElement("div");
+    info.className = "info";
+    if (artist) {
+      const artistSpan = document.createElement("span");
+      artistSpan.className = "artist";
+      artistSpan.textContent = artist;
+      info.appendChild(artistSpan);
+      info.appendChild(document.createTextNode(" — "));
+    }
+    const titleSpan = document.createElement("span");
+    titleSpan.className = "title";
+    titleSpan.textContent = title;
+    info.appendChild(titleSpan);
+
+    const actions = document.createElement("div");
+    actions.className = "actions";
+    const link = document.createElement("a");
+    link.className = "btn";
+    link.href = url;
+    link.target = "_blank";
+    link.rel = "noopener";
+    link.textContent = "Search";
+    const doneBtn = document.createElement("button");
+    doneBtn.className = "done-btn";
+    doneBtn.dataset.i = i;
+    doneBtn.textContent = saved[i] ? "Undo" : "Done";
+    actions.appendChild(link);
+    actions.appendChild(doneBtn);
+
+    row.appendChild(num);
+    row.appendChild(info);
+    row.appendChild(actions);
+    container.appendChild(row);
     if (saved[i]) doneCount++;
   });
 
@@ -248,20 +305,19 @@ function showResults(tracks, name) {
     updateBatchBtn();
   }
 
-  // Click Search link → auto-mark done
-  container.addEventListener("click", (e) => {
+  // Single click handler — assignment (not addEventListener) so repeated
+  // showResults calls don't stack listeners.
+  container.onclick = (e) => {
+    if (e.target.classList.contains("done-btn")) {
+      const i = parseInt(e.target.dataset.i);
+      if (saved[i]) markUndone(i); else markDone(i);
+      return;
+    }
     const link = e.target.closest("a.btn");
     if (link) {
       const i = link.closest(".track").querySelector(".done-btn").dataset.i;
       markDone(parseInt(i));
     }
-  });
-
-  // Click Done/Undo button → toggle
-  container.onclick = (e) => {
-    if (!e.target.classList.contains("done-btn")) return;
-    const i = parseInt(e.target.dataset.i);
-    if (saved[i]) markUndone(i); else markDone(i);
   };
 
   function updateBatchBtn() {
