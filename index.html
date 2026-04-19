@@ -31,7 +31,7 @@
   .format-hint code { background: #1a1a1a; color: #888; padding: 1px 5px; border-radius: 3px; font-family: 'SF Mono', 'Consolas', monospace; font-size: 11px; }
 
   /* Platform selector */
-  .platform-select { margin-top: 18px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .platform-select { margin-bottom: 16px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .platform-select .label { color: #888; font-size: 13px; }
   .platform-chips { display: flex; gap: 6px; flex-wrap: wrap; }
   .chip { padding: 6px 12px; background: #1a1a1a; color: #999; border: 1px solid #333; border-radius: 16px; cursor: pointer; font-size: 12px; font-weight: 500; transition: background 0.12s, color 0.12s, border-color 0.12s; }
@@ -99,15 +99,6 @@
 <div id="input-view">
   <h1>Track Finder</h1>
   <p>Paste a tracklist, get a search link for every track on your platform of choice.</p>
-  <textarea id="tracklist" placeholder="Friction & Circadian- Interstellar
-Kanine- Release Me
-Sub Focus- Original Don
-..."></textarea>
-  <div class="input-row">
-    <input type="text" id="playlist-name" placeholder="Playlist name (optional)">
-    <button id="go-btn">Generate</button>
-  </div>
-  <p class="format-hint">One track per line. Handles most common formats — <code>Artist - Title</code>, <code>Artist — Title</code>, <code>Artist: Title</code>, tabs, numbered or bulleted lists. Lines without a separator still search as a single phrase.</p>
 
   <div class="platform-select">
     <span class="label">Search on:</span>
@@ -118,6 +109,16 @@ Sub Focus- Original Don
       <button type="button" class="chip" data-platform="apple">Apple Music</button>
     </div>
   </div>
+
+  <textarea id="tracklist" placeholder="Friction & Circadian- Interstellar
+Kanine- Release Me
+Sub Focus- Original Don
+..."></textarea>
+  <div class="input-row">
+    <input type="text" id="playlist-name" placeholder="Playlist name (optional)">
+    <button id="go-btn">Generate</button>
+  </div>
+  <p class="format-hint">One track per line. Handles most common formats — <code>Artist - Title</code>, <code>Artist — Title</code>, <code>Artist: Title</code>, tabs, numbered or bulleted lists. Lines without a separator still search as a single phrase.</p>
   <div id="saved-list"></div>
 
   <div class="footer">
