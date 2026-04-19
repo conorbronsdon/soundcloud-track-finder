@@ -570,9 +570,29 @@ document.querySelectorAll(".chip").forEach(chip => {
   chip.addEventListener("click", () => setPlatform(chip.dataset.platform));
 });
 
+// URL param ingestion — lets any tool (bookmarklet, share link, extension)
+// pre-fill the app and optionally jump straight to results.
+//   ?tracks=<urlencoded newline-delimited list>
+//   ?platform=soundcloud|spotify|youtube|apple|beatport
+//   ?name=<playlist name>
+//   ?go=1   auto-generate after populating
+function ingestURLParams() {
+  const params = new URLSearchParams(window.location.search);
+  const tracksParam = params.get("tracks");
+  const platformParam = params.get("platform");
+  const nameParam = params.get("name");
+  const autoGo = params.get("go") === "1";
+
+  if (platformParam && PLATFORMS[platformParam]) setPlatform(platformParam);
+  if (tracksParam) document.getElementById("tracklist").value = tracksParam;
+  if (nameParam) document.getElementById("playlist-name").value = nameParam;
+  if (tracksParam && autoGo) document.getElementById("go-btn").click();
+}
+
 // Init
 setPlatform(currentPlatform);
 renderSavedPlaylists();
+ingestURLParams();
 </script>
 
 <!-- Vercel Web Analytics. Does nothing until enabled in the project's Vercel dashboard. -->

@@ -75,6 +75,25 @@ npx vercel --prod # production
 
 No build step required.
 
+## Pre-fill via URL params
+
+For bookmarklets, shareable links, browser extensions, or third-party integrations, Track Finder accepts these query params on load:
+
+| Param | Value | Effect |
+|-------|-------|--------|
+| `tracks` | URL-encoded tracklist, one per line (`%0A` between lines) | Populates the textarea |
+| `platform` | `soundcloud` / `spotify` / `youtube` / `apple` / `beatport` | Sets the search platform |
+| `name` | Playlist name | Populates the Playlist Name field |
+| `go` | `1` | Auto-generates and jumps straight to results |
+
+Example:
+
+```
+https://track-finder.vercel.app/?tracks=Kanine%20-%20Feel%20The%20Vibration%0ASub%20Focus%20-%20On%20%26%20On&platform=spotify&name=DnB%20Set&go=1
+```
+
+All params are optional. Use any combination. The user can still edit the textarea before generating unless `go=1` is set.
+
 ## Contributing
 
 Open an [issue](https://github.com/conorbronsdon/track-finder/issues) with a format the parser doesn't handle, a bug, or a feature idea. PRs welcome.

@@ -33,9 +33,12 @@ function extractPlaylistId(input) {
 function cleanTitle(t) {
   if (!t) return "";
   return t
-    // [Official Video], (Official Music Video), [Official Audio], [Audio],
-    // [Lyric Video], [Lyrics], [Visualizer], [HD], [4K], [HQ], [Live], [MV]
-    .replace(/\s*[\[\(](?:official\s+(?:music\s+)?video|official\s+audio|official\s+visualizer|visualizer|lyric(?:s)?\s+video|lyrics|audio|hd|4k|hq|live|mv|m\/v)\s*[\]\)]/gi, "")
+    // [Official Video], (Official Music Video), (Official Lyric Video),
+    // [Official Audio], [Official Visualiser/Visualizer], [Official Visual],
+    // [Audio], [Lyric Video], [Lyrics], [Visualiser/Visualizer],
+    // [Official Lyric Visualiser], [HD], [4K], [HQ], [Live], [MV]
+    // Matches both UK "visualiser" and US "visualizer" spellings.
+    .replace(/\s*[\[\(](?:official\s+(?:music\s+|lyric\s+)?video|official\s+(?:lyric\s+)?visuali[sz]er|official\s+visual|official\s+audio|visuali[sz]er|lyric(?:s)?\s+video|lyrics|audio|hd|4k|hq|live|mv|m\/v)\s*[\]\)]/gi, "")
     // [Free DL], [Free Download], [Premiere]
     .replace(/\s*[\[\(]\s*(?:free\s+dl|free\s+download|premiere|exclusive\s+premiere)\s*[\]\)]/gi, "")
     // 【Japanese brackets】 — often channel/label tags
