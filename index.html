@@ -50,6 +50,18 @@
   .chip.active { background: #f50; color: #fff; border-color: #f50; }
   .chip.active:hover { background: #e04500; border-color: #e04500; }
 
+  /* URL import row — dedicated input for YouTube playlist URLs etc. */
+  .url-import { margin-bottom: 18px; }
+  .url-import .label { color: #888; font-size: 13px; margin-bottom: 6px; display: block; }
+  .url-import .row { display: flex; gap: 10px; align-items: center; }
+  .url-import input[type="url"] { flex: 1; padding: 10px 14px; background: #1a1a1a; color: #eee; border: 1px solid #333; border-radius: 6px; font-size: 13px; }
+  .url-import input[type="url"]:focus { outline: none; border-color: #f50; }
+  .url-import input[type="url"]::placeholder { color: #555; }
+  #import-btn { padding: 10px 18px; background: #1a1a1a; color: #eee; border: 1px solid #f50; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s, color 0.15s; }
+  #import-btn:hover:not(:disabled) { background: #f50; color: #fff; }
+  #import-btn:disabled { opacity: 0.5; cursor: wait; }
+  .divider { text-align: center; color: #444; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; margin: 14px 0 10px; }
+
   /* Results view */
   #results-view { display: none; padding: 20px; }
   .header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
@@ -112,7 +124,7 @@
 
 <div id="input-view">
   <h1>Track Finder</h1>
-  <p>Paste a tracklist — or a YouTube playlist URL — and get a search link for every track on your platform of choice.</p>
+  <p>Paste a tracklist or import a YouTube playlist, and get a search link for every track on your platform of choice.</p>
 
   <div class="platform-select">
     <span class="label">Search on:</span>
@@ -125,14 +137,20 @@
     </div>
   </div>
 
-  <textarea id="tracklist" placeholder="Paste a tracklist (one track per line):
+  <div class="url-import">
+    <label class="label" for="import-url">Import from a YouTube playlist</label>
+    <div class="row">
+      <input type="url" id="import-url" placeholder="https://www.youtube.com/playlist?list=...">
+      <button type="button" id="import-btn">Import</button>
+    </div>
+  </div>
 
-Friction & Circadian - Interstellar
+  <div class="divider">or paste a tracklist</div>
+
+  <textarea id="tracklist" placeholder="Friction & Circadian - Interstellar
 Kanine - Release Me
 Sub Focus - Original Don
-
-…or paste a YouTube playlist URL:
-https://www.youtube.com/playlist?list=PL..."></textarea>
+..."></textarea>
   <div class="input-row">
     <input type="text" id="playlist-name" placeholder="Playlist name (optional)">
     <button id="go-btn">Generate</button>
@@ -148,7 +166,7 @@ https://www.youtube.com/playlist?list=PL..."></textarea>
         <li>Numbered or bulleted lists are handled</li>
         <li>Lines without a separator search as a single phrase</li>
       </ul>
-      <p><b>Paste a YouTube playlist URL</b> and click Generate — we fetch the video titles and run them through the parser. Common markers like <code>[Official Video]</code>, <code>[Lyrics]</code>, <code>[Free DL]</code>, and <code>【...】</code> tags are stripped automatically.</p>
+      <p><b>YouTube playlist import:</b> paste a playlist URL into the dedicated field above and click <b>Import</b>. We fetch the video titles, strip common noise (<code>[Official Video]</code>, <code>[Lyrics]</code>, <code>[Free DL]</code>, <code>【...】</code>), and run them through the parser. (A URL dropped directly into the tracklist box also works as a fallback.)</p>
       <p><b>From 1001tracklists:</b> use the <b>Export Tracklist</b> button for cleanest results. Raw select-all also works — the parser strips:</p>
       <ul>
         <li>UI noise: <code>Save</code> / <code>Pre-Save</code> buttons, play counts, track numbers, <code>artwork placeholder</code>, <code>[ID]</code> placeholders, repeated uploader usernames</li>
@@ -508,7 +526,8 @@ document.getElementById("batch-btn").addEventListener("click", () => {
   else { batchBtn.textContent = "Open next " + Math.min(remaining, 10); batchBtn.disabled = false; }
 });
 
-// Detect a single-line YouTube playlist URL in the textarea
+// Detect a single-line YouTube playlist URL (kept as a silent fallback if a
+// user drops a URL directly into the tracklist textarea).
 function isYouTubePlaylistInput(s) {
   if (!s) return false;
   const t = s.trim();
@@ -528,32 +547,53 @@ async function importFromYouTube(url) {
   return data; // { title, tracks, count }
 }
 
-// Generate button
-document.getElementById("go-btn").addEventListener("click", async () => {
-  const btn = document.getElementById("go-btn");
+// Shared importer: fetches, populates textarea + name, runs parse + results.
+async function runYouTubeImport(url) {
+  const importBtn = document.getElementById("import-btn");
+  const goBtn = document.getElementById("go-btn");
+  const textarea = document.getElementById("tracklist");
+  const nameInput = document.getElementById("playlist-name");
+
+  const originalImport = importBtn.textContent;
+  importBtn.disabled = true;
+  goBtn.disabled = true;
+  importBtn.textContent = "Fetching…";
+  try {
+    const data = await importFromYouTube(url);
+    textarea.value = data.tracks.join("\n");
+    if (!nameInput.value.trim() && data.title) nameInput.value = data.title;
+    const tracks = parseTracklist(textarea.value);
+    if (!tracks.length) { alert("Fetched " + data.count + " videos but couldn't parse any as tracks. Try editing the textarea."); return; }
+    showResults(tracks, nameInput.value.trim() || "Playlist");
+  } catch (e) {
+    alert(e.message || "Failed to fetch playlist");
+  } finally {
+    importBtn.disabled = false;
+    goBtn.disabled = false;
+    importBtn.textContent = originalImport;
+  }
+}
+
+// Dedicated Import button
+document.getElementById("import-btn").addEventListener("click", () => {
+  const url = document.getElementById("import-url").value.trim();
+  if (!url) { alert("Paste a YouTube playlist URL first."); return; }
+  if (!isYouTubePlaylistInput(url)) { alert("That doesn't look like a YouTube playlist URL. It should include ?list=..."); return; }
+  runYouTubeImport(url);
+});
+
+// Enter key in URL input triggers Import
+document.getElementById("import-url").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { e.preventDefault(); document.getElementById("import-btn").click(); }
+});
+
+// Generate button — silent fallback if the user pastes a URL into the textarea
+document.getElementById("go-btn").addEventListener("click", () => {
   const textarea = document.getElementById("tracklist");
   const nameInput = document.getElementById("playlist-name");
   const raw = textarea.value;
 
-  if (isYouTubePlaylistInput(raw)) {
-    const originalText = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = "Fetching…";
-    try {
-      const data = await importFromYouTube(raw.trim());
-      textarea.value = data.tracks.join("\n");
-      if (!nameInput.value.trim() && data.title) nameInput.value = data.title;
-      const tracks = parseTracklist(textarea.value);
-      if (!tracks.length) { alert("Fetched " + data.count + " videos but couldn't parse any as tracks. Try editing the textarea."); return; }
-      showResults(tracks, nameInput.value.trim() || "Playlist");
-    } catch (e) {
-      alert(e.message || "Failed to fetch playlist");
-    } finally {
-      btn.disabled = false;
-      btn.textContent = originalText;
-    }
-    return;
-  }
+  if (isYouTubePlaylistInput(raw)) { runYouTubeImport(raw.trim()); return; }
 
   const tracks = parseTracklist(raw);
   if (!tracks.length) { alert("No tracks found. Check format."); return; }
