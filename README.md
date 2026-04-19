@@ -2,7 +2,7 @@
 
 # Track Finder
 
-Paste a tracklist, get a search link for every track on your platform of choice — SoundCloud, Spotify, YouTube, Apple Music, or Beatport. No backend, no account, no dependencies — one HTML file.
+Paste a tracklist — or a YouTube playlist URL — and get a search link for every track on your platform of choice: SoundCloud, Spotify, YouTube, Apple Music, or Beatport.
 
 [![GitHub stars](https://img.shields.io/github/stars/conorbronsdon/track-finder?style=social)](https://github.com/conorbronsdon/track-finder/stargazers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
@@ -58,7 +58,13 @@ Hyphenated names like `D-Nox` survive because the hyphen splitter requires a spa
 
 ## Deployment
 
-Hosted on Vercel as a static site, linked to this repo — pushes to the default branch auto-deploy.
+Hosted on Vercel — pushes to the default branch auto-deploy. Static site plus one serverless function (`api/import/youtube`) for the YouTube playlist import.
+
+**For the YouTube playlist import to work**, set one environment variable in the Vercel project:
+
+- `YOUTUBE_API_KEY` — a YouTube Data API v3 key ([get one here](https://console.cloud.google.com/apis/credentials))
+
+Without it, the site still works for pasted tracklists; only the URL-import path errors out with a "Server not configured" message.
 
 To deploy your own fork:
 
@@ -67,7 +73,7 @@ npx vercel        # preview deployment
 npx vercel --prod # production
 ```
 
-No build step or `vercel.json` required — Vercel serves `index.html` from the repo root.
+No build step required.
 
 ## Contributing
 

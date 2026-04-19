@@ -112,7 +112,7 @@
 
 <div id="input-view">
   <h1>Track Finder</h1>
-  <p>Paste a tracklist, get a search link for every track on your platform of choice.</p>
+  <p>Paste a tracklist — or a YouTube playlist URL — and get a search link for every track on your platform of choice.</p>
 
   <div class="platform-select">
     <span class="label">Search on:</span>
@@ -125,10 +125,14 @@
     </div>
   </div>
 
-  <textarea id="tracklist" placeholder="Friction & Circadian- Interstellar
-Kanine- Release Me
-Sub Focus- Original Don
-..."></textarea>
+  <textarea id="tracklist" placeholder="Paste a tracklist (one track per line):
+
+Friction & Circadian - Interstellar
+Kanine - Release Me
+Sub Focus - Original Don
+
+…or paste a YouTube playlist URL:
+https://www.youtube.com/playlist?list=PL..."></textarea>
   <div class="input-row">
     <input type="text" id="playlist-name" placeholder="Playlist name (optional)">
     <button id="go-btn">Generate</button>
@@ -138,12 +142,13 @@ Sub Focus- Original Don
   <details class="format-help">
     <summary>Formatting &amp; how it works</summary>
     <div class="format-hint">
-      <p><b>Format:</b> one track per line.</p>
+      <p><b>Paste a tracklist:</b> one track per line.</p>
       <ul>
         <li>Common separators: <code>Artist - Title</code>, <code>Artist — Title</code>, <code>Artist: Title</code>, <code>Artist | Title</code>, tabs</li>
         <li>Numbered or bulleted lists are handled</li>
         <li>Lines without a separator search as a single phrase</li>
       </ul>
+      <p><b>Paste a YouTube playlist URL</b> and click Generate — we fetch the video titles and run them through the parser. Common markers like <code>[Official Video]</code>, <code>[Lyrics]</code>, <code>[Free DL]</code>, and <code>【...】</code> tags are stripped automatically.</p>
       <p><b>From 1001tracklists:</b> use the <b>Export Tracklist</b> button for cleanest results. Raw select-all also works — the parser strips:</p>
       <ul>
         <li>UI noise: <code>Save</code> / <code>Pre-Save</code> buttons, play counts, track numbers, <code>artwork placeholder</code>, <code>[ID]</code> placeholders, repeated uploader usernames</li>
@@ -494,13 +499,56 @@ document.getElementById("batch-btn").addEventListener("click", () => {
   else { batchBtn.textContent = "Open next " + Math.min(remaining, 10); batchBtn.disabled = false; }
 });
 
+// Detect a single-line YouTube playlist URL in the textarea
+function isYouTubePlaylistInput(s) {
+  if (!s) return false;
+  const t = s.trim();
+  if (t.includes("\n")) return false;
+  if (!/^https?:\/\/(?:www\.|music\.|m\.)?youtu(?:be\.com|\.be)/i.test(t)) return false;
+  try { return new URL(t).searchParams.has("list"); } catch { return false; }
+}
+
+async function importFromYouTube(url) {
+  const r = await fetch("/api/import/youtube", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url }),
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || `Request failed (${r.status})`);
+  return data; // { title, tracks, count }
+}
+
 // Generate button
-document.getElementById("go-btn").addEventListener("click", () => {
-  const text = document.getElementById("tracklist").value;
-  const name = document.getElementById("playlist-name").value.trim() || "Playlist";
-  const tracks = parseTracklist(text);
+document.getElementById("go-btn").addEventListener("click", async () => {
+  const btn = document.getElementById("go-btn");
+  const textarea = document.getElementById("tracklist");
+  const nameInput = document.getElementById("playlist-name");
+  const raw = textarea.value;
+
+  if (isYouTubePlaylistInput(raw)) {
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Fetching…";
+    try {
+      const data = await importFromYouTube(raw.trim());
+      textarea.value = data.tracks.join("\n");
+      if (!nameInput.value.trim() && data.title) nameInput.value = data.title;
+      const tracks = parseTracklist(textarea.value);
+      if (!tracks.length) { alert("Fetched " + data.count + " videos but couldn't parse any as tracks. Try editing the textarea."); return; }
+      showResults(tracks, nameInput.value.trim() || "Playlist");
+    } catch (e) {
+      alert(e.message || "Failed to fetch playlist");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+    return;
+  }
+
+  const tracks = parseTracklist(raw);
   if (!tracks.length) { alert("No tracks found. Check format."); return; }
-  showResults(tracks, name);
+  showResults(tracks, nameInput.value.trim() || "Playlist");
 });
 
 // Back button
