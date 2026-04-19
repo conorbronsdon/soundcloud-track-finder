@@ -26,8 +26,8 @@ Many DJ sets include a tracklist in the description. Could be:
 
 ## Considered
 
-### Naming
-Currently "SoundCloud Track Finder." If this becomes a multi-platform tool, a rename to something like "Tracklist Search" or "Playlist Porter" might fit better. Deferring until analytics show which platforms people actually use — if SoundCloud stays dominant, the name stays.
+### Naming — repo + URL still say "soundcloud-track-finder"
+The visible name is now "Track Finder" (H1, page title, meta tags, README) after the platform selector shipped. The GitHub repo slug and the Vercel URL still say `soundcloud-track-finder` — renaming those costs existing stars, inbound links from the launch post, and bookmarks, so deferring until analytics show it matters. If SoundCloud keeps being the dominant platform people click, the URL staying as-is is fine.
 
 ## Not planned
 
