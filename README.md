@@ -66,6 +66,15 @@ Hosted on Vercel — pushes to the default branch auto-deploy. Static site plus 
 
 Without it, the site still works for pasted tracklists; only the URL-import path errors out with a "Server not configured" message.
 
+**For the "Create in Spotify" button to work**, create a Spotify app and paste the Client ID into `index.html`:
+
+1. Go to [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard) → Create app
+2. Set **Redirect URIs** to include `https://track-finder.vercel.app/` (and `http://localhost:3000/` if you want to test locally)
+3. Scopes requested at auth time: `playlist-modify-public`, `playlist-modify-private`
+4. Copy the **Client ID** and paste it into `index.html` where it says `SPOTIFY_CLIENT_ID = "REPLACE_ME_SPOTIFY_CLIENT_ID"`. Client IDs are public-safe with PKCE — no secret ever touches the client.
+
+Without the Client ID set, the **Create in Spotify** button shows a configuration message instead of kicking off the OAuth flow.
+
 To deploy your own fork:
 
 ```bash

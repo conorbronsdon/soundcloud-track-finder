@@ -86,8 +86,27 @@
   #share-btn { margin-left: auto; }
   #share-btn:hover { border-color: var(--accent); color: var(--accent); }
   #share-btn.copied { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  #create-playlist-btn { display: none; background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+  #create-playlist-btn:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: var(--accent-text); }
   #batch-btn { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
   #batch-btn:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: var(--accent-text); }
+
+  /* Spotify progress modal */
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px; }
+  .modal-backdrop.visible { display: flex; }
+  .modal { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 28px; max-width: 440px; width: 100%; color: #eee; }
+  .modal h2 { color: var(--accent); font-size: 18px; margin-bottom: 14px; font-weight: 600; }
+  .modal p { color: #bbb; font-size: 14px; line-height: 1.6; margin-bottom: 12px; }
+  .modal .progress-bar { height: 4px; background: #2a2a2a; border-radius: 2px; overflow: hidden; margin: 18px 0 8px; }
+  .modal .progress-bar-fill { height: 100%; background: var(--accent); width: 0; transition: width 0.3s ease; }
+  .modal .progress-text { color: #888; font-size: 12px; }
+  .modal .unmatched { margin-top: 14px; padding: 10px 12px; background: #0d0d0d; border-radius: 6px; max-height: 150px; overflow-y: auto; font-size: 12px; color: #888; font-family: 'SF Mono', 'Consolas', monospace; }
+  .modal .unmatched strong { color: #bbb; display: block; margin-bottom: 6px; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 18px; justify-content: flex-end; }
+  .modal-actions a, .modal-actions button { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; text-decoration: none; border: 1px solid #444; background: #333; color: #ddd; transition: background 0.15s; }
+  .modal-actions a.primary, .modal-actions button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  .modal-actions a:hover, .modal-actions button:hover { background: #444; }
+  .modal-actions a.primary:hover, .modal-actions button.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
   .track { display: flex; align-items: center; padding: 10px 14px; border-bottom: 1px solid #222; transition: background 0.15s; }
   .track:hover { background: #1a1a1a; }
   .track.done { opacity: 0.35; }
@@ -233,10 +252,23 @@ Sub Focus - Original Don
     <button id="back-btn">&larr; Back</button>
     <h1 id="results-title">Playlist</h1>
     <button id="share-btn" title="Copy a shareable URL of this tracklist">Share</button>
+    <button id="create-playlist-btn" title="Create this playlist in your Spotify account">Create in Spotify</button>
     <button id="batch-btn">Open next 10</button>
   </div>
   <div class="progress">Progress: <span id="count">0</span> / <span id="total">0</span> done</div>
   <div id="tracks"></div>
+</div>
+
+<!-- Spotify playlist creation progress modal -->
+<div class="modal-backdrop" id="spotify-modal">
+  <div class="modal">
+    <h2 id="spotify-modal-title">Connecting to Spotify…</h2>
+    <p id="spotify-modal-body">Please wait.</p>
+    <div class="progress-bar"><div class="progress-bar-fill" id="spotify-progress-fill"></div></div>
+    <div class="progress-text" id="spotify-progress-text"></div>
+    <div class="unmatched" id="spotify-unmatched" style="display:none"></div>
+    <div class="modal-actions" id="spotify-modal-actions" style="display:none"></div>
+  </div>
 </div>
 
 <script>
@@ -344,6 +376,8 @@ function setPlatform(p) {
   document.querySelectorAll(".chip").forEach(chip => {
     chip.classList.toggle("active", chip.dataset.platform === p);
   });
+  // "Create in Spotify" only makes sense when Spotify is the selected platform
+  if (typeof updateCreatePlaylistBtn === "function") updateCreatePlaylistBtn();
 }
 
 function searchUrl(artist, title) {
@@ -494,6 +528,7 @@ function showResults(tracks, name) {
   document.getElementById("input-view").style.display = "none";
   document.getElementById("results-view").style.display = "block";
   document.body.classList.add("view-results");
+  updateCreatePlaylistBtn();
   document.getElementById("results-title").textContent = name || "Playlist";
   currentTracks = tracks;
 
@@ -718,6 +753,256 @@ document.getElementById("go-btn").addEventListener("click", () => {
   showResults(tracks, nameInput.value.trim() || "Playlist");
 });
 
+// ==========================================================================
+// Spotify playlist creation (OAuth PKCE, all client-side)
+// ==========================================================================
+
+// To enable: create an app at developer.spotify.com/dashboard, add
+// https://track-finder.vercel.app/ (and http://localhost:3000/ for local
+// testing) as redirect URIs, request scopes playlist-modify-public and
+// playlist-modify-private, then paste your client ID below.
+const SPOTIFY_CLIENT_ID = "REPLACE_ME_SPOTIFY_CLIENT_ID";
+const SPOTIFY_REDIRECT_URI = window.location.origin + "/";
+const SPOTIFY_SCOPES = "playlist-modify-public playlist-modify-private";
+
+function spotifyIsConfigured() {
+  return SPOTIFY_CLIENT_ID && SPOTIFY_CLIENT_ID !== "REPLACE_ME_SPOTIFY_CLIENT_ID";
+}
+
+function randomString(length) {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const array = new Uint8Array(length);
+  crypto.getRandomValues(array);
+  let result = "";
+  for (const byte of array) result += chars[byte % chars.length];
+  return result;
+}
+
+async function pkceChallenge(verifier) {
+  const data = new TextEncoder().encode(verifier);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return btoa(String.fromCharCode(...new Uint8Array(digest)))
+    .replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+}
+
+async function spotifyAuthKickoff() {
+  if (!spotifyIsConfigured()) {
+    alert("Spotify integration isn't configured yet. The site owner needs to set SPOTIFY_CLIENT_ID in index.html.");
+    return;
+  }
+  const verifier = randomString(64);
+  const challenge = await pkceChallenge(verifier);
+  const state = randomString(16);
+
+  // Save what we need after the redirect round-trip
+  sessionStorage.setItem("sp_verifier", verifier);
+  sessionStorage.setItem("sp_state", state);
+  sessionStorage.setItem("sp_tracks", JSON.stringify(currentTracks));
+  sessionStorage.setItem("sp_name", document.getElementById("results-title").textContent || "Track Finder Playlist");
+
+  const params = new URLSearchParams({
+    client_id: SPOTIFY_CLIENT_ID,
+    response_type: "code",
+    redirect_uri: SPOTIFY_REDIRECT_URI,
+    scope: SPOTIFY_SCOPES,
+    code_challenge_method: "S256",
+    code_challenge: challenge,
+    state,
+  });
+  window.location.href = "https://accounts.spotify.com/authorize?" + params.toString();
+}
+
+async function spotifyExchangeCode(code, verifier) {
+  const body = new URLSearchParams({
+    grant_type: "authorization_code",
+    code,
+    redirect_uri: SPOTIFY_REDIRECT_URI,
+    client_id: SPOTIFY_CLIENT_ID,
+    code_verifier: verifier,
+  });
+  const r = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: body.toString(),
+  });
+  if (!r.ok) {
+    const text = await r.text().catch(() => "");
+    throw new Error("Token exchange failed: " + r.status + " " + text);
+  }
+  const data = await r.json();
+  return data.access_token;
+}
+
+async function spotifySearchTrack(token, artist, title) {
+  const tryQuery = async (q) => {
+    const resp = await fetch("https://api.spotify.com/v1/search?q=" + encodeURIComponent(q) + "&type=track&limit=1", {
+      headers: { Authorization: "Bearer " + token },
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    return data?.tracks?.items?.[0]?.uri || null;
+  };
+  // Precision first: artist:"..." track:"..."
+  if (artist && title) {
+    const uri = await tryQuery('artist:"' + artist + '" track:"' + title + '"');
+    if (uri) return uri;
+  }
+  // Fallback to plain query
+  return await tryQuery(((artist ? artist + " " : "") + (title || "")).trim());
+}
+
+// Modal helpers
+function spotifyModalOpen() {
+  document.getElementById("spotify-modal").classList.add("visible");
+  document.getElementById("spotify-modal-actions").style.display = "none";
+  document.getElementById("spotify-unmatched").style.display = "none";
+  document.getElementById("spotify-progress-fill").style.width = "0%";
+}
+function spotifyModalClose() {
+  document.getElementById("spotify-modal").classList.remove("visible");
+}
+function spotifyModalStatus(title, body, pct, note) {
+  document.getElementById("spotify-modal-title").textContent = title;
+  document.getElementById("spotify-modal-body").textContent = body;
+  document.getElementById("spotify-progress-fill").style.width = (pct ?? 0) + "%";
+  document.getElementById("spotify-progress-text").textContent = note || "";
+}
+
+async function spotifyCreatePlaylist(token, tracks, name) {
+  spotifyModalStatus("Connecting to Spotify", "Loading your profile…", 5);
+  const meResp = await fetch("https://api.spotify.com/v1/me", { headers: { Authorization: "Bearer " + token } });
+  if (!meResp.ok) throw new Error("Failed to load Spotify profile");
+  const me = await meResp.json();
+
+  spotifyModalStatus("Creating playlist", "Creating \"" + name + "\" in your Spotify account…", 10);
+  const createResp = await fetch("https://api.spotify.com/v1/users/" + encodeURIComponent(me.id) + "/playlists", {
+    method: "POST",
+    headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+    body: JSON.stringify({ name, public: false, description: "Created with Track Finder" }),
+  });
+  if (!createResp.ok) throw new Error("Failed to create playlist");
+  const playlist = await createResp.json();
+
+  const uris = [];
+  const unmatched = [];
+  for (let i = 0; i < tracks.length; i++) {
+    const [artist, title] = tracks[i];
+    const pct = 15 + Math.round(((i + 1) / tracks.length) * 70);
+    spotifyModalStatus("Matching tracks", "Searching Spotify for each track…", pct, (i + 1) + " of " + tracks.length);
+    const uri = await spotifySearchTrack(token, artist, title);
+    if (uri) uris.push(uri);
+    else unmatched.push(artist ? (artist + " - " + title) : title);
+    if (i % 15 === 14) await new Promise((r) => setTimeout(r, 60));
+  }
+
+  if (uris.length) {
+    spotifyModalStatus("Adding tracks", "Adding " + uris.length + " tracks to the playlist…", 90);
+    for (let i = 0; i < uris.length; i += 100) {
+      const batch = uris.slice(i, i + 100);
+      const addResp = await fetch("https://api.spotify.com/v1/playlists/" + playlist.id + "/tracks", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ uris: batch }),
+      });
+      if (!addResp.ok) throw new Error("Failed to add tracks (" + addResp.status + ")");
+    }
+  }
+
+  // Success
+  spotifyModalStatus("Done", "Created \"" + name + "\" with " + uris.length + " of " + tracks.length + " tracks.", 100, "");
+  const unmatchedEl = document.getElementById("spotify-unmatched");
+  if (unmatched.length) {
+    unmatchedEl.style.display = "block";
+    unmatchedEl.innerHTML = "";
+    const strong = document.createElement("strong");
+    strong.textContent = unmatched.length + " couldn't be matched on Spotify:";
+    unmatchedEl.appendChild(strong);
+    for (const line of unmatched) {
+      const div = document.createElement("div");
+      div.textContent = line;
+      unmatchedEl.appendChild(div);
+    }
+  }
+  const actions = document.getElementById("spotify-modal-actions");
+  actions.style.display = "flex";
+  actions.innerHTML = "";
+  const open = document.createElement("a");
+  open.href = playlist.external_urls.spotify;
+  open.target = "_blank";
+  open.rel = "noopener";
+  open.className = "primary";
+  open.textContent = "Open in Spotify";
+  const close = document.createElement("button");
+  close.textContent = "Close";
+  close.addEventListener("click", spotifyModalClose);
+  actions.appendChild(close);
+  actions.appendChild(open);
+}
+
+async function spotifyHandleCallback() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get("code");
+  const stateParam = params.get("state");
+  const err = params.get("error");
+
+  if (err) {
+    alert("Spotify authorization was denied (" + err + ").");
+    sessionStorage.removeItem("sp_verifier");
+    sessionStorage.removeItem("sp_state");
+    sessionStorage.removeItem("sp_tracks");
+    sessionStorage.removeItem("sp_name");
+    window.history.replaceState({}, "", "/");
+    return;
+  }
+  if (!code) return;
+
+  const expectedState = sessionStorage.getItem("sp_state");
+  const verifier = sessionStorage.getItem("sp_verifier");
+  if (!expectedState || !verifier || stateParam !== expectedState) {
+    // Not our callback, or state mismatch — clean up and bail silently
+    window.history.replaceState({}, "", "/");
+    return;
+  }
+
+  const tracksRaw = sessionStorage.getItem("sp_tracks");
+  const name = sessionStorage.getItem("sp_name") || "Track Finder Playlist";
+  sessionStorage.removeItem("sp_verifier");
+  sessionStorage.removeItem("sp_state");
+  sessionStorage.removeItem("sp_tracks");
+  sessionStorage.removeItem("sp_name");
+  window.history.replaceState({}, "", "/");
+
+  const tracks = tracksRaw ? JSON.parse(tracksRaw) : [];
+  if (!tracks.length) return;
+
+  spotifyModalOpen();
+  spotifyModalStatus("Connecting to Spotify", "Finishing sign-in…", 3);
+  try {
+    const token = await spotifyExchangeCode(code, verifier);
+    await spotifyCreatePlaylist(token, tracks, name);
+  } catch (e) {
+    spotifyModalStatus("Something went wrong", e.message || "Unknown error", 0);
+    const actions = document.getElementById("spotify-modal-actions");
+    actions.style.display = "flex";
+    actions.innerHTML = "";
+    const close = document.createElement("button");
+    close.textContent = "Close";
+    close.addEventListener("click", spotifyModalClose);
+    actions.appendChild(close);
+  }
+}
+
+document.getElementById("create-playlist-btn").addEventListener("click", () => {
+  if (!currentTracks.length) { alert("No tracks to create a playlist from."); return; }
+  spotifyAuthKickoff();
+});
+
+// Toggle the Create-in-Spotify button visibility based on current platform
+function updateCreatePlaylistBtn() {
+  const btn = document.getElementById("create-playlist-btn");
+  btn.style.display = currentPlatform === "spotify" ? "" : "none";
+}
+
 // Share button — build a URL with current tracks + platform + name, copy it.
 function buildShareURL() {
   const url = new URL(window.location.origin + "/");
@@ -795,6 +1080,7 @@ function ingestURLParams() {
 // Init
 setPlatform(currentPlatform);
 renderSavedPlaylists();
+spotifyHandleCallback();
 ingestURLParams();
 </script>
 
