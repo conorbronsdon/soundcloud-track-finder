@@ -2,7 +2,7 @@
 
 # Track Finder
 
-Paste a tracklist — or a YouTube playlist URL — and get a search link for every track on your platform of choice: SoundCloud, Spotify, YouTube, Apple Music, or Beatport.
+Paste a tracklist — or a YouTube playlist URL — and get a search link for every track on your platform of choice: SoundCloud, Spotify, YouTube, Apple Music, Beatport, Tidal, Bandcamp, Deezer, or Mixcloud.
 
 [![GitHub stars](https://img.shields.io/github/stars/conorbronsdon/track-finder?style=social)](https://github.com/conorbronsdon/track-finder/stargazers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
@@ -13,7 +13,7 @@ Paste a tracklist — or a YouTube playlist URL — and get a search link for ev
 
 ---
 
-As an avid SoundCloud user (I have too many playlists), I've always wished it was easier to pull a tracklist — or Shazams — into a SoundCloud playlist. Right now it requires a lot of manual searching, so I built a mini app to find each track for me. Then friends pointed out they'd want the same thing on Spotify, YouTube, and Apple Music — so it does all four.
+As an avid SoundCloud user (I have too many playlists), I've always wished it was easier to pull a tracklist — or Shazams — into a SoundCloud playlist. Right now it requires a lot of manual searching, so I built a mini app to find each track for me. Then friends pointed out they'd want the same thing on Spotify, YouTube, and Apple Music — and it kept growing from there. It covers nine platforms now.
 
 If you're constantly crate digging, or found a set on YouTube with a tracklist you love, this helps you find the individual tracks much more easily. Paste the list, pick your platform, click through the search links, mark tracks as you add them. Progress saves to your browser so you can come back to it.
 
