@@ -115,7 +115,7 @@ Open an [issue](https://github.com/conorbronsdon/track-finder/issues) with a for
 
 ---
 
-Built by [Conor Bronsdon](https://github.com/conorbronsdon) · [X](https://x.com/ConorBronsdon) · [LinkedIn](https://www.linkedin.com/in/conorbronsdon/) · [Chain of Thought podcast](https://chainofthought.show)
+Built by [Conor Bronsdon](https://github.com/conorbronsdon) · [X](https://x.com/ConorBronsdon) · [LinkedIn](https://www.linkedin.com/in/conorbronsdon/) · [Chain of Thought podcast](https://chainofthought.show/?utm_source=github&utm_medium=referral&utm_campaign=repo-readme&utm_content=track-finder)
 
 ## Disclaimer
 
